@@ -1,8 +1,9 @@
-name: Cleanup GitHub Pages
+name: One-time Cleanup GitHub Pages
 
 on:
   schedule:
-    - cron: '0 0 */20 * *'  # Ejecutar cada 20 días
+    # Se ejecutará solo una vez el 15 de febrero de 2024 a las 00:00 UTC
+    - cron: '0 0 15 2 *'
 
 jobs:
   cleanup:
@@ -10,13 +11,25 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check if should run
+        id: check_date
+        run: |
+          target_date="2024-02-15"
+          current_date=$(date +%Y-%m-%d)
+          if [ "$current_date" = "$target_date" ]; then
+            echo "::set-output name=should_run::true"
+          fi
+
       - uses: actions/checkout@v2
+        if: steps.check_date.outputs.should_run == 'true'
       
       - name: Delete gh-pages branch
+        if: steps.check_date.outputs.should_run == 'true'
         run: |
           git push origin --delete gh-pages || true
           
       - name: Disable GitHub Pages
+        if: steps.check_date.outputs.should_run == 'true'
         uses: actions/github-script@v6
         with:
           script: |
@@ -26,4 +39,14 @@ jobs:
               source: {
                 branch: "none"
               }
-            }); 
+            });
+
+      - name: Delete workflow file
+        if: steps.check_date.outputs.should_run == 'true'
+        run: |
+          rm .github/workflows/cleanup.yml
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add .github/workflows/cleanup.yml
+          git commit -m "Remove cleanup workflow after execution"
+          git push 
