@@ -1,0 +1,29 @@
+name: Cleanup GitHub Pages
+
+on:
+  schedule:
+    - cron: '0 0 */20 * *'  # Ejecutar cada 20 días
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Delete gh-pages branch
+        run: |
+          git push origin --delete gh-pages || true
+          
+      - name: Disable GitHub Pages
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.repos.updateInformationAboutPagesSite({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              source: {
+                branch: "none"
+              }
+            }); 
